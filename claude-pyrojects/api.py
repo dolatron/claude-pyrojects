@@ -1,4 +1,4 @@
-import os
+import os, time
 from curl_cffi import requests
 import json
 
@@ -6,6 +6,7 @@ import json
 class ClaudeAPI:
     BASE_URL = "https://claude.ai/api"
     USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'
+    API_THROTTLE = .2
 
     def __init__(self, session_key):
         self.session_key = session_key
@@ -20,7 +21,8 @@ class ClaudeAPI:
         organizations = response.json()
 
         for org in organizations:
-            if 'chat' in org['capabilities'] or 'claude_pro' in org['capabilities']:
+            if ('chat' in org['capabilities'] and 'raven' in org['capabilities'])  or 'claude_pro' in org['capabilities']: 
+                #handle team accounts by forcing check for raven since free accounts don't support upload
                 return org['uuid']
 
         raise ValueError("No organization found with 'chat' or 'claude_pro' capabilities")
@@ -126,6 +128,9 @@ class ClaudeAPI:
                         response = self.add_file_to_project(project_uuid, relative_path, content)
                         print(f"Uploaded {relative_path}: {response}")
 
+                        # Add a delay of 200ms between files
+                        time.sleep(self.API_THROTTLE)
+
     def reinitialize_project_files(self, project_uuid, directory_path, exclude_extensions=None):
         if exclude_extensions is None:
             exclude_extensions = []
@@ -135,5 +140,8 @@ class ClaudeAPI:
 
         for file_uuid in file_uuids:
             self.delete_file_from_project(project_uuid, file_uuid)
+
+            # Add a delay of 200ms between files
+            time.sleep(self.API_THROTTLE)
 
         self.upload_directory_with_structure(project_uuid, directory_path, exclude_extensions)
