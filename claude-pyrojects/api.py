@@ -2,16 +2,20 @@ import os, time
 from curl_cffi import requests
 import json
 
-
 class ClaudeAPI:
     BASE_URL = "https://claude.ai/api"
     USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'
-    API_THROTTLE = .2
+    DEFAULT_API_THROTTLE_MS = 200  # Default throttle in milliseconds
 
-    def __init__(self, session_key):
+    def __init__(self, session_key, api_throttle_ms=None):
         self.session_key = session_key
         self.cookie = f"sessionKey={session_key}"
         self.organization_id = self._get_organization_id()
+        
+        # Convert milliseconds to seconds for time.sleep()
+        throttle_ms = api_throttle_ms if api_throttle_ms is not None else self.DEFAULT_API_THROTTLE_MS
+        self.api_throttle = throttle_ms / 1000.0
+
 
     def _get_organization_id(self):
         url = f"{self.BASE_URL}/organizations"
@@ -129,7 +133,7 @@ class ClaudeAPI:
                         print(f"Uploaded {relative_path}: {response}")
 
                         # Add a delay of 200ms between files
-                        time.sleep(self.API_THROTTLE)
+                        time.sleep(self.api_throttle)
 
     def reinitialize_project_files(self, project_uuid, directory_path, exclude_extensions=None):
         if exclude_extensions is None:
@@ -142,6 +146,6 @@ class ClaudeAPI:
             self.delete_file_from_project(project_uuid, file_uuid)
 
             # Add a delay of 200ms between files
-            time.sleep(self.API_THROTTLE)
+            time.sleep(self.api_throttle)
 
         self.upload_directory_with_structure(project_uuid, directory_path, exclude_extensions)

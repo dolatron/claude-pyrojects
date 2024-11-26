@@ -26,17 +26,17 @@ def init(session_key):
 
     click.echo("Initialization complete. Ignore file and session key saved.")
 
-
 @main.command()
 @click.option('-N', '--project-name', required=True, help='Name of the new project.')
-def create(project_name):
+@click.option('-T', '--throttle', type=int, default=200, help='API throttle in milliseconds. Default is 200ms.')
+def create(project_name, throttle):
     """Create a new Claude project and upload the project structure."""
     try:
         # Load session key from claude_pyrojects.key
         with open('claude_pyrojects.key', 'r') as key_file:
             session_key = key_file.read().strip()
 
-        api = ClaudeAPI(session_key)
+        api = ClaudeAPI(session_key, api_throttle_ms=throttle)
         config = ConfigManager()
 
         project = api.create_project(api.organization_id, project_name)
@@ -51,18 +51,18 @@ def create(project_name):
     except requests.exceptions.RequestException as e:
         click.echo(f"Failed to create project: {e}")
 
-
 @main.command()
 @click.option('-D', '--directory-path', default=os.getcwd(), type=click.Path(exists=True),
               help='Path to the project directory to update. Defaults to the current directory.')
-def update(directory_path):
+@click.option('-T', '--throttle', type=int, default=200, help='API throttle in milliseconds. Default is 200ms.')
+def update(directory_path, throttle):
     """Update the project by clearing all files and re-uploading the directory."""
     try:
         # Load session key from claude_pyrojects.key
         with open('claude_pyrojects.key', 'r') as key_file:
             session_key = key_file.read().strip()
 
-        api = ClaudeAPI(session_key)
+        api = ClaudeAPI(session_key, api_throttle_ms=throttle)
         config = ConfigManager()
         project_config = config.load_config()
 
